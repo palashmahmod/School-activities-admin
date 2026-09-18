@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Report</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f4f7f6; padding: 15px; }
+        .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-back { background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; text-decoration: none; }
+        .row-group { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .form-group { flex: 1; min-width: 150px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        
+        /* টেবিল রেসপনসিভ ও স্ক্রোল ফ্রেম */
+        .table-responsive { 
+            overflow: auto; 
+            max-height: 500px; 
+            margin-top: 15px; 
+            border: 1px solid #ddd;
+        }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 850px; }
+        th, td { border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px; background: #fff; }
+        
+        /* হেডার ফ্রিজ (Sticky Header) */
+        th { 
+            position: sticky; 
+            top: 0; 
+            background: #0d6efd; 
+            color: white; 
+            z-index: 10; 
+        }
+
+        /* ১ম কলাম (রোল নং) ফ্রিজ (Sticky First Column) */
+        th:first-child, td:first-child { 
+            position: sticky; 
+            left: 0; 
+            z-index: 5; 
+            background: #f8f9fa; 
+            font-weight: bold;
+        }
+
+        /* হেডার ও ১ম কলাম ওভারল্যাপ কর্নার লক */
+        th:first-child { 
+            z-index: 15; 
+            background: #0a58ca;
+        }
+
+        .btn-copy { background: #198754; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 15px; }
+        #status { text-align: center; margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2>Monthly Performance Report</h2>
+        <a href="index.html" class="btn-back">Back</a>
+    </div>
+
+    <div class="row-group">
+        <div class="form-group">
+            <label>Class:</label>
+            <select id="classSelect" onchange="updateSections()">
+                <option value="">Select Class</option>
+                <option value="Class 6">Class 6</option>
+                <option value="Class 7">Class 7</option>
+                <option value="Class 8">Class 8</option>
+                <option value="Class 9">Class 9</option>
+                <option value="Class 10">Class 10</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Section/Group:</label>
+            <select id="sectionSelect" onchange="loadReport()">
+                <option value="">Select Section</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>From Month:</label>
+            <input type="month" id="fromMonth" onchange="loadReport()">
+        </div>
+        <div class="form-group">
+            <label>To Month:</label>
+            <input type="month" id="toMonth" onchange="loadReport()">
+        </div>
+    </div>
+
+    <div class="table-responsive" id="reportWrapper" style="display:none;">
+        <table id="reportTable">
+            <thead>
+                <tr>
+                    <th>Roll</th>
+                    <th>Name</th>
+                    <th>Attendance</th>
+                    <th>Homework</th>
+                    <th>School Dress</th>
+                    <th>Behavior</th>
+                    <th>Practical</th>
+                    <th>Assignment</th>
+                    <th>Exam Score</th>
+                    <th>Total Points</th>
+                </tr>
+            </thead>
+            <tbody id="reportTbody"></tbody>
+        </table>
+    </div>
+    <button class="btn-copy" id="copyBtn" style="display:none;" onclick="copyTableToClipboard()">Copy Table for Google Sheet (Plain)</button>
+    <div id="status"></div>
+</div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwrdJBmGmjhwBFfXc6NL1NlJYJafQgIKIIc530aZHx_E8mkXtSOPsnpiUH4uLYau_U/exec";
+    
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    document.getElementById('fromMonth').value = currentMonth;
+    document.getElementById('toMonth').value = currentMonth;
+
+    function updateSections() {
+        const cls = document.getElementById("classSelect").value;
+        const secSelect = document.getElementById("sectionSelect");
+        secSelect.innerHTML = '<option value="">Select Section</option>';
+        let opts = ["Class 6", "Class 7", "Class 8"].includes(cls) ? ["A", "B", "C", "D"] : ["Science", "Business Studies", "Humanities"];
+        opts.forEach(o => secSelect.innerHTML += `<option value="${o}">${o}</option>`);
+    }
+
+    // দুটি মাসের মাঝের সকল মাস বের করার ফাংশন
+    function getMonthRange(start, end) {
+        let months = [];
+        let dt = new Date(start + "-01");
+        let endDt = new Date(end + "-01");
+        while (dt <= endDt) {
+            months.push(dt.toISOString().slice(0, 7));
+            dt.setMonth(dt.getMonth() + 1);
+        }
+        return months;
+    }
+
+    async function loadReport() {
+        const cls = document.getElementById("classSelect").value;
+        const sec = document.getElementById("sectionSelect").value;
+        const fromM = document.getElementById("fromMonth").value;
+        const toM = document.getElementById("toMonth").value;
+
+        if(!cls || !sec || !fromM || !toM) return;
+
+        if (fromM > toM) {
+            alert("'From Month' অবশ্যই 'To Month' এর পূর্বের বা সমান হতে হবে।");
+            return;
+        }
+
+        const className = `${cls} - ${sec}`;
+        const monthList = getMonthRange(fromM, toM);
+        
+        document.getElementById("status").innerText = "Generating Combined Report...";
+
+        let combinedData = {};
+
+        try {
+            for (let m of monthList) {
+                let res = await fetch(`${SCRIPT_URL}?action=getMonthlyReport&className=${encodeURIComponent(className)}&monthYear=${m}`).then(r => r.json());
+                
+                if (res.data && res.data.length > 0) {
+                    res.data.forEach(st => {
+                        if (!combinedData[st.roll]) {
+                            combinedData[st.roll] = {
+                                roll: st.roll,
+                                name: st.name,
+                                act1: 0, act2: 0, act3: 0, act4: 0, act5: 0, act6: 0, act7: 0, total: 0
+                            };
+                        }
+                        combinedData[st.roll].act1 += st.act1 || 0;
+                        combinedData[st.roll].act2 += st.act2 || 0;
+                        combinedData[st.roll].act3 += st.act3 || 0;
+                        combinedData[st.roll].act4 += st.act4 || 0;
+                        combinedData[st.roll].act5 += st.act5 || 0;
+                        combinedData[st.roll].act6 += st.act6 || 0;
+                        combinedData[st.roll].act7 += st.act7 || 0;
+                        combinedData[st.roll].total += st.total || 0;
+                    });
+                }
+            }
+
+            document.getElementById("status").innerText = "";
+            const tbody = document.getElementById("reportTbody");
+            tbody.innerHTML = "";
+
+            const studentKeys = Object.keys(combinedData);
+            if(studentKeys.length > 0) {
+                studentKeys.sort((a, b) => parseInt(a) - parseInt(b)); // রোল অনুযায়ী সাজানো
+                
+                studentKeys.forEach(k => {
+                    let row = combinedData[k];
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${row.roll}</td>
+                            <td>${row.name}</td>
+                            <td>${row.act1}</td>
+                            <td>${row.act2}</td>
+                            <td>${row.act3}</td>
+                            <td>${row.act4}</td>
+                            <td>${row.act5}</td>
+                            <td>${row.act6}</td>
+                            <td>${row.act7}</td>
+                            <td><strong>${row.total}</strong></td>
+                        </tr>
+                    `;
+                });
+                document.getElementById("reportWrapper").style.display = "block";
+                document.getElementById("copyBtn").style.display = "block";
+            } else {
+                document.getElementById("status").innerText = "No data found for the selected month range.";
+                document.getElementById("reportWrapper").style.display = "none";
+                document.getElementById("copyBtn").style.display = "none";
+            }
+
+        } catch (e) {
+            document.getElementById("status").innerText = "Error loading report.";
+        }
+    }
+
+    // কালার ছাড়া শুধু প্লেন ডাটা কপি করার ফাংশন
+    function copyTableToClipboard() {
+        const table = document.getElementById("reportTable");
+        let tsvText = "";
+
+        // প্রসেস হেডার
+        const headers = Array.from(table.querySelectorAll("th")).map(th => th.innerText.trim());
+        tsvText += headers.join("\t") + "\n";
+
+        // প্রসেস বডি ডাটা
+        const rows = table.querySelectorAll("tbody tr");
+        rows.forEach(row => {
+            const cols = Array.from(row.querySelectorAll("td")).map(td => td.innerText.trim());
+            tsvText += cols.join("\t") + "\n";
+        });
+
+        // ক্লিপবোর্ডে ডাটা কপি
+        navigator.clipboard.writeText(tsvText).then(() => {
+            alert("Table copied as Plain Text! Open Google Sheet and paste (Ctrl+V) at Cell A1.");
+        }).catch(err => {
+            alert("Failed to copy table.");
+        });
+    }
+</script>
+</body>
+</html>

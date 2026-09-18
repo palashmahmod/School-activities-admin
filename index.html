@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Assistant App</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        h1 { color: #1a252f; margin-bottom: 25px; font-size: 22px; }
+        .nav-btn { display: block; width: 100%; padding: 14px; margin: 12px 0; background: #0d6efd; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; transition: 0.3s; }
+        .nav-btn:hover { background: #0b5ed7; }
+        .btn-act { background: #198754; }
+        .btn-act:hover { background: #157347; }
+        .btn-rep { background: #0dcaf0; color: #000; }
+        .btn-rep:hover { background: #31d2f2; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Teacher's Dashboard</h1>
+        <a href="student_entry.html" class="nav-btn">1. Student Entry</a>
+        <a href="activity_entry.html" class="nav-btn btn-act">2. Daily Activity Entry</a>
+        <a href="monthly_report.html" class="nav-btn btn-rep">3. Monthly Report</a>
+        <a href="create_user.html" class="nav-btn">4. Create Captain User</a>
+    </div>
+</body>
+</html>

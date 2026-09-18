@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Activity Entry</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f4f7f6; padding: 15px; }
+        .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-back { background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; text-decoration: none; }
+        .row-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .form-group { flex: 1; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        
+        /* টেবিল রেসপনসিভ ও স্ক্রোল ফ্রেম */
+        .table-responsive { 
+            overflow: auto; 
+            max-height: 500px; /* ফ্রিজ হেডার কাজের জন্য নির্দিষ্ট হাইট */
+            margin-top: 15px; 
+            border: 1px solid #ddd;
+        }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 800px; }
+        th, td { border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px; background: #fff; }
+        
+        /* হেডার ফ্রিজ (Sticky Header) */
+        th { 
+            position: sticky; 
+            top: 0; 
+            background: #e9ecef; 
+            z-index: 10; 
+        }
+
+        /* ১ম কলাম (রোল নং) ফ্রিজ (Sticky First Column) */
+        th:first-child, td:first-child { 
+            position: sticky; 
+            left: 0; 
+            z-index: 5; 
+            background: #f8f9fa; 
+            font-weight: bold;
+        }
+
+        /* হেডার ও ১ম কলাম ওভারল্যাপ কর্নার লক */
+        th:first-child { 
+            z-index: 15; 
+            background: #d6dbe0;
+        }
+
+        .toggle-btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; }
+        .btn-on { background: #198754; color: white; }
+        .btn-off { background: #dc3545; color: white; }
+        .btn-submit { background: #0d6efd; color: white; border: none; padding: 12px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 15px; font-weight: bold; }
+        #status { text-align: center; margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2>Daily Activity Entry</h2>
+        <a href="index.html" class="btn-back">Back</a>
+    </div>
+
+    <div class="row-group">
+        <div class="form-group">
+            <label>Class:</label>
+            <select id="classSelect" onchange="updateSections()">
+                <option value="">Select Class</option>
+                <option value="Class 6">Class 6</option>
+                <option value="Class 7">Class 7</option>
+                <option value="Class 8">Class 8</option>
+                <option value="Class 9">Class 9</option>
+                <option value="Class 10">Class 10</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Section/Group:</label>
+            <select id="sectionSelect" onchange="checkAndLoadData()">
+                <option value="">Select Section</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Date:</label>
+            <input type="date" id="activityDate" onchange="checkAndLoadData()">
+        </div>
+    </div>
+
+    <div class="table-responsive" id="tableWrapper" style="display:none;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Roll</th>
+                    <th>Name</th>
+                    <th>Attendance (2)</th>
+                    <th>Homework (3)</th>
+                    <th>Dress (3)</th>
+                    <th>Behavior (2)</th>
+                    <th>Practical (5)</th>
+                    <th>Assignment (5)</th>
+                    <th>Exam Score</th>
+                </tr>
+            </thead>
+            <tbody id="activityTbody"></tbody>
+        </table>
+    </div>
+    <button class="btn-submit" id="saveBtn" style="display:none;" onclick="saveActivityData()">Save Activities</button>
+    <div id="status"></div>
+</div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwrdJBmGmjhwBFfXc6NL1NlJYJafQgIKIIc530aZHx_E8mkXtSOPsnpiUH4uLYau_U/exec";
+    document.getElementById('activityDate').valueAsDate = new Date();
+
+    let currentStudents = [];
+    const actPoints = [2, 3, 3, 2, 5, 5];
+
+    function updateSections() {
+        const cls = document.getElementById("classSelect").value;
+        const secSelect = document.getElementById("sectionSelect");
+        secSelect.innerHTML = '<option value="">Select Section</option>';
+        let opts = ["Class 6", "Class 7", "Class 8"].includes(cls) ? ["A", "B", "C", "D"] : ["Science", "Business Studies", "Humanities"];
+        opts.forEach(o => secSelect.innerHTML += `<option value="${o}">${o}</option>`);
+    }
+
+    function checkAndLoadData() {
+        const cls = document.getElementById("classSelect").value;
+        const sec = document.getElementById("sectionSelect").value;
+        const date = document.getElementById("activityDate").value;
+        if(!cls || !sec || !date) return;
+        
+        const className = `${cls} - ${sec}`;
+        document.getElementById("status").innerText = "Loading...";
+
+        fetch(`${SCRIPT_URL}?action=getStudents&className=${encodeURIComponent(className)}`)
+        .then(r => r.json()).then(res => {
+            currentStudents = res.students || [];
+            if(currentStudents.length === 0) {
+                document.getElementById("status").innerText = "No students found. Please add students first.";
+                document.getElementById("tableWrapper").style.display = "none";
+                document.getElementById("saveBtn").style.display = "none";
+                return;
+            }
+            
+            fetch(`${SCRIPT_URL}?action=getActivity&className=${encodeURIComponent(className)}&date=${date}`)
+            .then(r => r.json()).then(actRes => {
+                document.getElementById("status").innerText = "";
+                renderTable(actRes.found ? actRes.pointsMatrix : null);
+            });
+        });
+    }
+
+    function renderTable(savedMatrix) {
+        const tbody = document.getElementById("activityTbody");
+        tbody.innerHTML = "";
+
+        currentStudents.forEach((st, sIdx) => {
+            let rowHtml = `<tr><td>${st.roll}</td><td>${st.name}</td>`;
+            for(let a=0; a<6; a++) {
+                // পূর্বে সেভ করা না থাকলে ডিফল্টভাবে OFF থাকবে (savedMatrix থাকলে আগের ডাটা লোড হবে)
+                let isOn = savedMatrix ? (savedMatrix[a][sIdx] > 0) : false;
+                rowHtml += `<td><button class="toggle-btn ${isOn?'btn-on':'btn-off'}" onclick="toggleBtn(this)" data-pt="${actPoints[a]}">${isOn?'ON':'OFF'}</button></td>`;
+            }
+            let examVal = savedMatrix ? savedMatrix[6][sIdx] : 0;
+            rowHtml += `<td><input type="number" class="exam-score" value="${examVal}" min="0" style="width:70px; text-align:center;"></td></tr>`;
+            tbody.innerHTML += rowHtml;
+        });
+
+        document.getElementById("tableWrapper").style.display = "block";
+        document.getElementById("saveBtn").style.display = "block";
+    }
+
+    function toggleBtn(btn) {
+        if(btn.classList.contains("btn-on")) {
+            btn.classList.remove("btn-on");
+            btn.classList.add("btn-off");
+            btn.innerText = "OFF";
+        } else {
+            btn.classList.remove("btn-off");
+            btn.classList.add("btn-on");
+            btn.innerText = "ON";
+        }
+    }
+
+    function saveActivityData() {
+        const cls = document.getElementById("classSelect").value;
+        const sec = document.getElementById("sectionSelect").value;
+        const className = `${cls} - ${sec}`;
+        const date = document.getElementById("activityDate").value;
+
+        const rows = document.querySelectorAll("#activityTbody tr");
+        const records = [];
+
+        rows.forEach(row => {
+            const btns = row.querySelectorAll(".toggle-btn");
+            const points = [];
+            btns.forEach(b => {
+                points.push(b.classList.contains("btn-on") ? parseInt(b.dataset.pt) : 0);
+            });
+            const examPts = parseInt(row.querySelector(".exam-score").value) || 0;
+            points.push(examPts);
+
+            records.push({ points: points });
+        });
+
+        document.getElementById("status").innerText = "Saving Activities...";
+        fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "saveActivity", className: className, date: date, records: records })
+        }).then(r => r.json()).then(res => {
+            document.getElementById("status").innerText = "Activities Saved Successfully!";
+        });
+    }
+</script>
+</body>
+</html>

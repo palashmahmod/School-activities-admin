@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Entry</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f4f7f6; padding: 15px; }
+        .container { max-width: 700px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-back { background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-size: 14px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        select, input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .row-group { display: flex; gap: 10px; }
+        .row-group .form-group { flex: 1; }
+        .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn-primary { background: #0d6efd; color: white; }
+        .btn-success { background: #198754; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background: #f8f9fa; }
+        #status { margin-top: 15px; text-align: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2>Student Entry</h2>
+        <a href="index.html" class="btn-back">Back</a>
+    </div>
+
+    <div class="row-group">
+        <div class="form-group">
+            <label>Class:</label>
+            <select id="classSelect" onchange="updateSectionOptions()">
+                <option value="">Select Class</option>
+                <option value="Class 6">Class 6</option>
+                <option value="Class 7">Class 7</option>
+                <option value="Class 8">Class 8</option>
+                <option value="Class 9">Class 9</option>
+                <option value="Class 10">Class 10</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Section/Group:</label>
+            <select id="sectionSelect" onchange="loadStudents()">
+                <option value="">Select Section</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Total Students Count:</label>
+        <div style="display:flex; gap:10px;">
+            <input type="number" id="studentCount" placeholder="e.g. 50">
+            <button class="btn btn-primary" style="margin:0; width:120px;" onclick="generateRows()">Generate</button>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Bulk Student Names (Paste Line by Line):</label>
+        <textarea id="bulkNames" rows="3"></textarea>
+        <button class="btn btn-primary" onclick="applyBulkNames()">Apply Bulk Names</button>
+    </div>
+
+    <div id="tableContainer" style="display:none;">
+        <table>
+            <thead><tr><th style="width:20%;">Roll</th><th>Student Name</th></tr></thead>
+            <tbody id="studentTableBody"></tbody>
+        </table>
+        <button class="btn btn-success" onclick="saveToSheet()">Save to Sheet</button>
+        <button class="btn btn-danger" onclick="deleteAllData()">Delete All Data</button>
+    </div>
+    <div id="status"></div>
+</div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwrdJBmGmjhwBFfXc6NL1NlJYJafQgIKIIc530aZHx_E8mkXtSOPsnpiUH4uLYau_U/exec";
+    const classOrder = [
+        "Class 6 - A", "Class 6 - B", "Class 6 - C", "Class 6 - D",
+        "Class 7 - A", "Class 7 - B", "Class 7 - C", "Class 7 - D",
+        "Class 8 - A", "Class 8 - B", "Class 8 - C", "Class 8 - D",
+        "Class 9 - Science", "Class 9 - Business Studies", "Class 9 - Humanities",
+        "Class 10 - Science", "Class 10 - Business Studies", "Class 10 - Humanities"
+    ];
+
+    function updateSectionOptions() {
+        const cls = document.getElementById("classSelect").value;
+        const secSelect = document.getElementById("sectionSelect");
+        secSelect.innerHTML = '<option value="">Select Section</option>';
+        let opts = ["Class 6", "Class 7", "Class 8"].includes(cls) ? ["A", "B", "C", "D"] : ["Science", "Business Studies", "Humanities"];
+        opts.forEach(o => secSelect.innerHTML += `<option value="${o}">${o}</option>`);
+    }
+
+    function generateRows(countVal = null) {
+        const count = countVal || parseInt(document.getElementById("studentCount").value);
+        if(!count) return;
+        const tbody = document.getElementById("studentTableBody");
+        tbody.innerHTML = "";
+        for(let i=1; i<=count; i++) {
+            tbody.innerHTML += `<tr><td>${i}</td><td><input type="text" class="st-name" data-roll="${i}"></td></tr>`;
+        }
+        document.getElementById("tableContainer").style.display = "block";
+    }
+
+    function applyBulkNames() {
+        const names = document.getElementById("bulkNames").value.trim().split('\n').map(n => n.trim()).filter(n => n);
+        generateRows(names.length);
+        document.getElementById("studentCount").value = names.length;
+        document.querySelectorAll(".st-name").forEach((inp, idx) => { if(names[idx]) inp.value = names[idx]; });
+    }
+
+    function saveToSheet() {
+        const cls = document.getElementById("classSelect").value;
+        const sec = document.getElementById("sectionSelect").value;
+        const className = `${cls} - ${sec}`;
+        const cIndex = classOrder.indexOf(className);
+        
+        const students = [];
+        document.querySelectorAll(".st-name").forEach(inp => {
+            if(inp.value.trim()) students.push({ roll: inp.dataset.roll, name: inp.value.trim() });
+        });
+
+        document.getElementById("status").innerText = "Saving...";
+        fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "saveStudents", classIndex: cIndex, className: className, students: students })
+        }).then(r => r.json()).then(res => {
+            document.getElementById("status").innerText = "Saved Successfully!";
+        });
+    }
+
+    function loadStudents() {
+        const cls = document.getElementById("classSelect").value;
+        const sec = document.getElementById("sectionSelect").value;
+        if(!cls || !sec) return;
+        const className = `${cls} - ${sec}`;
+        document.getElementById("status").innerText = "Loading...";
+        
+        fetch(`${SCRIPT_URL}?action=getStudents&className=${encodeURIComponent(className)}`)
+        .then(r => r.json()).then(res => {
+            document.getElementById("status").innerText = "";
+            if(res.students && res.students.length > 0) {
+                generateRows(res.students.length);
+                document.getElementById("studentCount").value = res.students.length;
+                document.querySelectorAll(".st-name").forEach((inp, i) => { inp.value = res.students[i].name; });
+            } else {
+                document.getElementById("tableContainer").style.display = "none";
+            }
+        });
+    }
+
+    function deleteAllData() {
+        if(confirm("Delete all data for this class?")) {
+            document.getElementById("studentTableBody").innerHTML = "";
+            saveToSheet();
+        }
+    }
+</script>
+</body>
+</html>

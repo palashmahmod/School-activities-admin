@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Captain User</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f4f7f6; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2 { margin-bottom: 20px; text-align: center; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .btn-submit { background: #198754; color: white; border: none; padding: 12px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; }
+        .btn-back { display: block; text-align: center; margin-top: 15px; color: #6c757d; text-decoration: none; }
+        #status { text-align: center; margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Create Captain User ID</h2>
+    
+    <div class="form-group">
+        <label>Class:</label>
+        <select id="classSelect" onchange="updateSections()">
+            <option value="">Select Class</option>
+            <option value="Class 6">Class 6</option>
+            <option value="Class 7">Class 7</option>
+            <option value="Class 8">Class 8</option>
+            <option value="Class 9">Class 9</option>
+            <option value="Class 10">Class 10</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label>Section/Group:</label>
+        <select id="sectionSelect">
+            <option value="">Select Section</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Subject Name:</label>
+        <input type="text" id="subjectName" placeholder="e.g. Mathematics">
+    </div>
+
+    <div class="form-group">
+        <label>User ID:</label>
+        <input type="text" id="userId" placeholder="Enter User ID">
+    </div>
+
+    <div class="form-group">
+        <label>PIN Number:</label>
+        <input type="password" id="pinNumber" placeholder="Enter PIN">
+    </div>
+
+    <button class="btn-submit" onclick="createUser()">Create User</button>
+    <a href="index.html" class="btn-back">Back to Dashboard</a>
+    <div id="status"></div>
+</div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwrdJBmGmjhwBFfXc6NL1NlJYJafQgIKIIc530aZHx_E8mkXtSOPsnpiUH4uLYau_U/exec";
+
+    function updateSections() {
+        const cls = document.getElementById("classSelect").value;
+        const secSelect = document.getElementById("sectionSelect");
+        secSelect.innerHTML = '<option value="">Select Section</option>';
+        let opts = ["Class 6", "Class 7", "Class 8"].includes(cls) ? ["A", "B", "C", "D"] : ["Science", "Business Studies", "Humanities"];
+        opts.forEach(o => secSelect.innerHTML += `<option value="${o}">${o}</option>`);
+    }
+
+    function createUser() {
+        const cls = document.getElementById("classSelect").value;
+        const sec = document.getElementById("sectionSelect").value;
+        const subject = document.getElementById("subjectName").value;
+        const userId = document.getElementById("userId").value;
+        const pin = document.getElementById("pinNumber").value;
+
+        if(!cls || !sec || !subject || !userId || !pin) {
+            alert("সবগুলো তথ্য প্রদান করুন।");
+            return;
+        }
+
+        const className = `${cls} - ${sec}`;
+        document.getElementById("status").innerText = "Creating User...";
+
+        fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify({
+                action: "createUser",
+                className: className,
+                subject: subject,
+                userId: userId,
+                pin: pin
+            })
+        })
+        .then(r => r.json())
+        .then(res => {
+            document.getElementById("status").innerText = "User Created Successfully!";
+            document.getElementById("userId").value = "";
+            document.getElementById("pinNumber").value = "";
+            document.getElementById("subjectName").value = "";
+        });
+    }
+</script>
+</body>
+</html>
